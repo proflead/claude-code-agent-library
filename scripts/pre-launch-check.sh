@@ -22,10 +22,11 @@ NC='\033[0m'
 echo " Step 1: Validating agents..."
 if [ -f "scripts/validate-agents.sh" ]; then
   chmod +x scripts/validate-agents.sh
-  if ./scripts/validate-agents.sh > /dev/null 2>&1; then
+  if VALIDATION_OUTPUT=$(./scripts/validate-agents.sh 2>&1); then
       echo -e "${GREEN} All agents validated successfully${NC}"
   else
       echo -e "${RED} Agent validation failed${NC}"
+      echo "$VALIDATION_OUTPUT"
       ERRORS=$((ERRORS + 1))
   fi
 else
@@ -110,7 +111,7 @@ SHOULD_BE_IGNORED=(
 for file in "${SHOULD_BE_IGNORED[@]}"; do
   if [ -f "$file" ]; then
       # Check if pattern exists in .gitignore that would match this file
-      if grep -q "^PHASE_\*\.md$\|^PROJECT_COMPLETE\.md$\|^AGENTS_SUMMARY\.md$" .gitignore 2>/dev/null; then
+      if grep -Eq "^PHASE_\*\.md$|^PROJECT_COMPLETE\.md$|^AGENTS_SUMMARY\.md$" .gitignore 2>/dev/null; then
           echo -e "${GREEN} $file (will be ignored by gitignore patterns)${NC}"
       else
           echo -e "${YELLOW}  $file exists (will be ignored by patterns)${NC}"
@@ -140,7 +141,7 @@ echo ""
 
 # Check 7: Verify README has content
 echo " Step 7: Checking README content..."
-if [ -f "README.md" ] && [ $(wc -l < README.md) -gt 50 ]; then
+if [ -f "README.md" ] && [ "$(wc -l < README.md)" -gt 50 ]; then
   echo -e "${GREEN} README has substantial content${NC}"
 else
   echo -e "${RED} README is missing or too short${NC}"
@@ -168,7 +169,7 @@ TOTAL_SIZE=$(du -sh . 2>/dev/null | cut -f1)
 echo -e "${BLUE}  Total size: $TOTAL_SIZE${NC}"
 
 # Count files (excluding internal docs)
-AGENT_FILES=$(find .claude/agents -name "*.md" 2>/dev/null | wc -l)
+AGENT_FILES=$AGENT_COUNT
 DOC_FILES=$(find docs -name "*.md" 2>/dev/null | wc -l)
 echo -e "${BLUE}  Claude Code agent files: $AGENT_FILES${NC}"
 echo -e "${BLUE}  Documentation files: $DOC_FILES${NC}"
@@ -179,9 +180,6 @@ echo "=================================================="
 echo " Verification Summary"
 echo "=================================================="
 
-TOTAL_CHECKS=35
-PASSED=$((TOTAL_CHECKS - ERRORS))
-echo -e "${GREEN} Passed: $PASSED/$TOTAL_CHECKS${NC}"
 echo -e "${RED} Errors: $ERRORS${NC}"
 echo -e "${YELLOW}  Warnings: $WARNINGS${NC}"
 echo ""
@@ -190,7 +188,7 @@ if [ $ERRORS -eq 0 ]; then
   echo -e "${GREEN} Repository is ready for launch!${NC}"
   echo ""
   echo " What will be committed:"
-  echo "   35 agent files"
+  echo "   36 agent files"
   echo "   10+ documentation guides"
   echo "   Core files (README, CONTRIBUTING, LICENSE, etc.)"
   echo "   Scripts and templates"
